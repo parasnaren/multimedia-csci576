@@ -1,5 +1,5 @@
 // TODO: Extend lines to the edges
-// TODO: Use better low pass filter maybe?
+// TODO: Update getScaledImage() to use 2D indices
 
 import java.awt.*;
 import java.awt.image.*;
@@ -38,20 +38,20 @@ public class Mypart1 {
         }
 	}
 
-	public BufferedImage getAntiAliasedImage(BufferedImage image) {
+	public BufferedImage old_getAntiAliasedImage(BufferedImage image) {
 		/*
 		 * Using a custom low pass filter to anti-alias the image
 		 * [
-				0,		1/8f,	0,
-				1/8f,	1/2f,	1/8f,
-				0,		1/8f,	0
+				1/9f,	1/9f,	1/9f,
+				1/9f,	1/9f,	1/9f,
+				1/9f,	1/9f,	1/9f
 			]
 		*/
 		int size = 3;
 		float[] lowPassFilter = new float[] {
-			0,		1/8f,	0,
-			1/8f,	1/2f,	1/8f,
-			0,		1/8f,	0
+			1/9f,	1/9f,	1/9f,
+			1/9f,	1/9f,	1/9f,
+			1/9f,	1/9f,	1/9f
 		};
         Kernel kernel = new Kernel(size, size, lowPassFilter);
 
@@ -63,7 +63,60 @@ public class Mypart1 {
 		return antiAliasedImage;
 	}
 
-	public Image getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
+	public BufferedImage getAntiAliasedImage(BufferedImage image) {
+		BufferedImage antiAliasedImage = new BufferedImage(width, height, image.getType());
+        int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        int[] antiAliasedPixels = ((DataBufferInt) antiAliasedImage.getRaster().getDataBuffer()).getData();
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				int sumR = 0;
+				int sumG = 0;
+				int sumB = 0;
+				int count = 0;
+				for (int i = x - 1; i <= x + 1; i++) {
+					for (int j = y - 1; j <= y + 1; j++) {
+						if (i >= 0 && i < width && j >= 0 && j < height) {
+							Color color = new Color(image.getRGB(i, j));
+							sumR += color.getRed();
+							sumG += color.getGreen();
+							sumB += color.getBlue();
+							count++;
+						}
+					}
+				}
+				int avgR = sumR / count;
+				int avgG = sumG / count;
+				int avgB = sumB / count;
+				Color avgColor = new Color(avgR, avgG, avgB);
+				antiAliasedImage.setRGB(x, y, avgColor.getRGB());
+			}
+		}
+		return antiAliasedImage;
+	}
+
+	public BufferedImage getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
+        int scaledWidth = (int) (width * scaleFactor);
+        int scaledHeight = (int) (height * scaleFactor);
+
+		if (antiAlias) {
+			image = getAntiAliasedImage(image);
+		}
+
+        BufferedImage scaledImage = new BufferedImage(scaledWidth, scaledHeight, image.getType());
+        int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        int[] resizedPixels = ((DataBufferInt) scaledImage.getRaster().getDataBuffer()).getData();
+
+        for (int y = 0; y < scaledHeight; y++) {
+            for (int x = 0; x < scaledWidth; x++) {
+				// Calculate the original pixel index
+                int originalPixelIndex = (int) (y / scaleFactor) * width + (int) (x / scaleFactor);
+                resizedPixels[y * scaledWidth + x] = originalPixels[originalPixelIndex];
+            }
+        }
+        return scaledImage;
+    }
+
+	public Image old_getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
 		if (antiAlias) {
 			image = getAntiAliasedImage(image);
 		}
@@ -89,9 +142,9 @@ public class Mypart1 {
 		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
 		int ind = 0;
-		for(int y = 0; y < height; y++){
+		for(int y = 0; y < height; y++) {
 
-			for(int x = 0; x < width; x++){
+			for(int x = 0; x < width; x++) {
 
 				// byte a = (byte) 255;
 				byte r = (byte) 255;
@@ -100,7 +153,7 @@ public class Mypart1 {
 
 				int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 				//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
-				img.setRGB(x,y,pix);
+				img.setRGB(x, y, pix);
 				ind++;
 			}
 		}
