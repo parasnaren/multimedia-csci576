@@ -1,5 +1,5 @@
 // TODO: Extend lines to the edges
-// TODO: Use better low pass filter maybe?
+// TODO: Update getScaledImage() to use 2D indices
 
 import java.awt.*;
 import java.awt.image.*;
@@ -14,9 +14,12 @@ public class Mypart2 {
 	JFrame frame;
 	JLabel lbIm1;
 	JLabel lbIm2;
-	BufferedImage img;
-	int width = 512;
-	int height = 512;
+	BufferedImage mainImg;
+	BufferedImage newImg;
+	private int SIZE = 512;
+	private int R = 256;
+	private double angle;
+	private int step = 5; // move by 5 degrees each iteration
 
 	// Draws a black line on the given buffered image from the pixel defined by (x1, y1) to (x2, y2)
 	public void drawLine(BufferedImage image, int x1, int y1, int x2, int y2) {
@@ -27,126 +30,53 @@ public class Mypart2 {
 		g.drawImage(image, 0, 0, null);
 	}
 
-	public void drawRadialLines(BufferedImage image, int n) {
-		int xTimes = 10; // rotate x times in one second
-		int size = 512;
-		int x1 = width / 2; int y1 = height / 2;
-        int x2, y2;
-		Graphics2D g2d = image.createGraphics();
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, size, size);
-        g2d.setColor(Color.BLACK);
-        long startTime = System.currentTimeMillis();
-        while (true) {
-            long elapsedTime = System.currentTimeMillis() - startTime;
-            if (elapsedTime >= 1000) {
-                break;
-            }
-            g2d.setTransform(new AffineTransform());
-            g2d.clearRect(0, 0, size, size);
-            g2d.setColor(Color.WHITE);
-            g2d.fillRect(0, 0, size, size);
-            g2d.setColor(Color.BLACK);
-            double rotation = elapsedTime * xTimes / 1000.0 * 360.0 / n;
-            g2d.rotate(Math.toRadians(rotation), x1, y1);
-            for (int i = 0; i < n; i++) {
-                double angle = 2 * Math.PI * i / n;
-				x2 = x1 + (int) (width / 2 * Math.cos(angle));
-				y2 = y1 + (int) (height / 2 * Math.sin(angle));
-				drawLine(img, x1, y1, x2, y2);
-            }
-		}
+	public void drawRadialLines(BufferedImage image, int n, double angle) {
+        for (int i = 0; i < n; i++) {
+			int x1 = R;
+			int y1 = R;
+			int x2 = (int) (R + R * Math.cos(Math.toRadians(360.0 / n * i + angle)));
+			int y2 = (int) (R + R * Math.sin(Math.toRadians(360.0 / n * i + angle)));
+            drawLine(image, x1, y1, x2, y2);
+        }
 	}
 
-	public BufferedImage getAntiAliasedImage(BufferedImage image) {
-		/*
-		 * Using a custom low pass filter to anti-alias the image
-		 * [
-				0,		1/8f,	0,
-				1/8f,	1/2f,	1/8f,
-				0,		1/8f,	0
-			]
-		*/
-		int size = 3;
-		float[] lowPassFilter = new float[] {
-			0,		1/8f,	0,
-			1/8f,	1/2f,	1/8f,
-			0,		1/8f,	0
-		};
-        Kernel kernel = new Kernel(size, size, lowPassFilter);
-
-        // Applying convolution using the kernel
-        ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
-        BufferedImage antiAliasedImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-        op.filter(image, antiAliasedImage);
-
-		return antiAliasedImage;
-	}
-
-	public Image getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
-		if (antiAlias) {
-			image = getAntiAliasedImage(image);
-		}
-		int width = (int) (image.getWidth() * scaleFactor);
-        int height = (int) (image.getHeight() * scaleFactor);
-        Image scaledImage = image.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-		return scaledImage;
-	}
-
-	public void showIms(String[] args){
-
-		// Read parameters from command line
-		int n = Integer.parseInt(args[0]); // number of radial lines
-		System.out.println("n: " + n);
-
-		double scaleFactor = Double.parseDouble(args[1]);  // the scale factor
-		System.out.println("scaleFactor: " + scaleFactor);
-
-		boolean antiAlias = "1".equals(args[2]); // anti-aliasing required or not (0 or 1)
-		System.out.println("antiAlias: " + antiAlias);
-
+	public void initBackgroundImage(BufferedImage img) {
 		// Initialize a plain white image
-		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-
-		int ind = 0;
-		for(int y = 0; y < height; y++){
-
-			for(int x = 0; x < width; x++){
-
-				// byte a = (byte) 255;
-				byte r = (byte) 255;
+		for(int y = 0; y < SIZE; y++) {
+			for(int x = 0; x < SIZE; x++) {
+				byte R = (byte) 255;
 				byte g = (byte) 255;
 				byte b = (byte) 255;
-
-				int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-				//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
-				img.setRGB(x,y,pix);
-				ind++;
+				int pix = 0xff000000 | ((R & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+				img.setRGB(x, y, pix);
 			}
 		}
-		
-		drawLine(img, 0, 0, width-1, 0);				// top edge
-		drawLine(img, 0, 0, 0, height-1);				// left edge
-		drawLine(img, 0, height-1, width-1, height-1);	// bottom edge
-		drawLine(img, width-1, height-1, width-1, 0); 	// right edge
-		
-		// Draw the radially outward lines (filling up a circle)
-		// TODO: Extend lines to the edges
-		drawRadialLines(img, n);
+		drawLine(img, 0, 0, SIZE-1, 0);			// top edge
+		drawLine(img, 0, 0, 0, SIZE-1);			// left edge
+		drawLine(img, 0, SIZE-1, SIZE-1, SIZE-1);		// bottom edge
+		drawLine(img, SIZE-1, SIZE-1, SIZE-1, 0);		// right edge
+	}
+
+	public void showIms(String[] args) {
+		// Read parameters from command line
+		int n = Integer.parseInt(args[0]); // number of radial lines `n`
+		System.out.println("n: " + n);
+
+		double x = Double.parseDouble(args[1]);  // the number of revolutions per second `x`
+		System.out.println("x: " + x);
+
+		double fps = Double.parseDouble(args[2]); // fps of the output `fps`
+		System.out.println("fps: " + fps);
 		
 		// Use labels to display the images
 		frame = new JFrame();
 		GridBagLayout gLayout = new GridBagLayout();
 		frame.getContentPane().setLayout(gLayout);
 
-		JLabel lbText1 = new JLabel("Original image (Left)");
+		JLabel lbText1 = new JLabel("Original video (Left)");
 		lbText1.setHorizontalAlignment(SwingConstants.CENTER);
-		JLabel lbText2 = new JLabel("Image after modification (Right)");
+		JLabel lbText2 = new JLabel("Video after modification (Right)");
 		lbText2.setHorizontalAlignment(SwingConstants.CENTER);
-
-		lbIm1 = new JLabel(new ImageIcon(img));
-		lbIm2 = new JLabel(new ImageIcon(img));
-		// lbIm2 = new JLabel(new ImageIcon(getScaledImage(img, scaleFactor, antiAlias))); // Get the scaled image
 
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
@@ -163,18 +93,47 @@ public class Mypart2 {
 		c.gridy = 0;
 		frame.getContentPane().add(lbText2, c);
 
-		c.fill = GridBagConstraints.HORIZONTAL;
-		c.gridx = 0;
-		c.gridy = 1;
-		frame.getContentPane().add(lbIm1, c);
+		// Calculations
+		long delay = (long) (1000 / (72 * x));
+		long timeInterval = (long) (1000 / fps);
+		long currentTime, timeElapsed, previousTime = 0;
+		mainImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the main image
+		newImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the new image
 
-		c.fill = GridBagConstraints.HORIZONTAL;
-		c.gridx = 1;
-		c.gridy = 1;
-		frame.getContentPane().add(lbIm2, c);
+		while (true) {
+			currentTime = System.currentTimeMillis();
+			initBackgroundImage(mainImg); // Set white background
+			drawRadialLines(mainImg, n, angle); // Draw the radial lines
+			angle = (angle + step) % 360;
+			try {
+				Thread.sleep(delay);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			timeElapsed = (currentTime - previousTime);
+			if (timeElapsed >= timeInterval) {
+				Graphics g = newImg.createGraphics();
+				g.drawImage(mainImg, 0, 0, null);
+				previousTime = currentTime;
+				System.out.println("Captured frame: " + timeElapsed);
+			}
+			lbIm1 = new JLabel(new ImageIcon(mainImg));
+			lbIm2 = new JLabel(new ImageIcon(newImg));
 
-		frame.pack();
-		frame.setVisible(true);
+			c.fill = GridBagConstraints.HORIZONTAL;
+			c.gridx = 0;
+			c.gridy = 1;
+			frame.getContentPane().add(lbIm1, c);
+
+			c.fill = GridBagConstraints.HORIZONTAL;
+			c.gridx = 1;
+			c.gridy = 1;
+			frame.getContentPane().add(lbIm2, c);
+
+			frame.pack();
+			frame.setVisible(true);
+			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		}
 	}
 
 	public static void main(String[] args) {

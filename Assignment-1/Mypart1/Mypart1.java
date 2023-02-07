@@ -15,8 +15,8 @@ public class Mypart1 {
 	JLabel lbIm1;
 	JLabel lbIm2;
 	BufferedImage img;
-	int width = 512;
-	int height = 512;
+	int size = 512;
+	int r = 256;
 
 	// Draws a black line on the given buffered image from the pixel defined by (x1, y1) to (x2, y2)
 	public void drawLine(BufferedImage image, int x1, int y1, int x2, int y2) {
@@ -28,54 +28,68 @@ public class Mypart1 {
 	}
 
 	public void drawRadialLines(BufferedImage image, int n) {
-		int x1 = width / 2; int y1 = height / 2;
+		int x1 = r; int y1 = r;
         int x2, y2;
         for (int i = 0; i < n; i++) {
-            double angle = 2 * Math.PI * i / n;
-            x2 = x1 + (int) (width / 2 * Math.cos(angle));
-            y2 = y1 + (int) (height / 2 * Math.sin(angle));
+            double angle = Math.toRadians(360.0 * i / n);
+			double cosTheta = Math.cos(angle);
+			double sinTheta = Math.sin(angle);
+            // x2 = (int) (( r + (int) (r * cosTheta)) / cosTheta );
+            // y2 = (int) (( r + (int) (r * sinTheta)) / cosTheta );
+			x2 = r + (int) (r * cosTheta);
+            y2 = r + (int) (r * sinTheta);
             drawLine(img, x1, y1, x2, y2);
         }
 	}
 
-	public BufferedImage old_getAntiAliasedImage(BufferedImage image) {
-		/*
-		 * Using a custom low pass filter to anti-alias the image
-		 * [
-				1/9f,	1/9f,	1/9f,
-				1/9f,	1/9f,	1/9f,
-				1/9f,	1/9f,	1/9f
-			]
-		*/
-		int size = 3;
-		float[] lowPassFilter = new float[] {
-			1/9f,	1/9f,	1/9f,
-			1/9f,	1/9f,	1/9f,
-			1/9f,	1/9f,	1/9f
-		};
-        Kernel kernel = new Kernel(size, size, lowPassFilter);
+	// public BufferedImage old_getAntiAliasedImage(BufferedImage image) {
+	// 	/*
+	// 	 * Using a custom low pass filter to anti-alias the image
+	// 	 * [
+	// 			1/9f,	1/9f,	1/9f,
+	// 			1/9f,	1/9f,	1/9f,
+	// 			1/9f,	1/9f,	1/9f
+	// 		]
+	// 	*/
+	// 	int size = 3;
+	// 	float[] lowPassFilter = new float[] {
+	// 		1/9f,	1/9f,	1/9f,
+	// 		1/9f,	1/9f,	1/9f,
+	// 		1/9f,	1/9f,	1/9f
+	// 	};
+    //     Kernel kernel = new Kernel(size, size, lowPassFilter);
 
-        // Applying convolution using the kernel
-        ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
-        BufferedImage antiAliasedImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-        op.filter(image, antiAliasedImage);
+    //     // Applying convolution using the kernel
+    //     ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
+    //     BufferedImage antiAliasedImage = new BufferedImage(image.getsize(), image.getsize(), image.getType());
+    //     op.filter(image, antiAliasedImage);
 
-		return antiAliasedImage;
-	}
+	// 	return antiAliasedImage;
+	// }
+
+	// public Image old_getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
+	// 	if (antiAlias) {
+	// 		image = getAntiAliasedImage(image);
+	// 	}
+	// 	int size = (int) (image.getsize() * scaleFactor);
+    //     int size = (int) (image.getsize() * scaleFactor);
+    //     Image scaledImage = image.getScaledInstance(size, size, Image.SCALE_SMOOTH);
+	// 	return scaledImage;
+	// }
 
 	public BufferedImage getAntiAliasedImage(BufferedImage image) {
-		BufferedImage antiAliasedImage = new BufferedImage(width, height, image.getType());
+		BufferedImage antiAliasedImage = new BufferedImage(size, size, image.getType());
         int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         int[] antiAliasedPixels = ((DataBufferInt) antiAliasedImage.getRaster().getDataBuffer()).getData();
-		for (int x = 0; x < width; x++) {
-			for (int y = 0; y < height; y++) {
+		for (int x = 0; x < size; x++) {
+			for (int y = 0; y < size; y++) {
 				int sumR = 0;
 				int sumG = 0;
 				int sumB = 0;
 				int count = 0;
 				for (int i = x - 1; i <= x + 1; i++) {
 					for (int j = y - 1; j <= y + 1; j++) {
-						if (i >= 0 && i < width && j >= 0 && j < height) {
+						if (i >= 0 && i < size && j >= 0 && j < size) {
 							Color color = new Color(image.getRGB(i, j));
 							sumR += color.getRed();
 							sumG += color.getGreen();
@@ -95,36 +109,25 @@ public class Mypart1 {
 	}
 
 	public BufferedImage getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
-        int scaledWidth = (int) (width * scaleFactor);
-        int scaledHeight = (int) (height * scaleFactor);
+        int scaledsize = (int) (size * scaleFactor);
 
 		if (antiAlias) {
 			image = getAntiAliasedImage(image);
 		}
 
-        BufferedImage scaledImage = new BufferedImage(scaledWidth, scaledHeight, image.getType());
+        BufferedImage scaledImage = new BufferedImage(scaledsize, scaledsize, image.getType());
         int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
         int[] resizedPixels = ((DataBufferInt) scaledImage.getRaster().getDataBuffer()).getData();
 
-        for (int y = 0; y < scaledHeight; y++) {
-            for (int x = 0; x < scaledWidth; x++) {
+        for (int y = 0; y < scaledsize; y++) {
+            for (int x = 0; x < scaledsize; x++) {
 				// Calculate the original pixel index
-                int originalPixelIndex = (int) (y / scaleFactor) * width + (int) (x / scaleFactor);
-                resizedPixels[y * scaledWidth + x] = originalPixels[originalPixelIndex];
+                int originalPixelIndex = (int) (y / scaleFactor) * size + (int) (x / scaleFactor);
+                resizedPixels[y * scaledsize + x] = originalPixels[originalPixelIndex];
             }
         }
         return scaledImage;
     }
-
-	public Image old_getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
-		if (antiAlias) {
-			image = getAntiAliasedImage(image);
-		}
-		int width = (int) (image.getWidth() * scaleFactor);
-        int height = (int) (image.getHeight() * scaleFactor);
-        Image scaledImage = image.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-		return scaledImage;
-	}
 
 	public void showIms(String[] args){
 
@@ -139,12 +142,11 @@ public class Mypart1 {
 		System.out.println("antiAlias: " + antiAlias);
 
 		// Initialize a plain white image
-		img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
 
-		int ind = 0;
-		for(int y = 0; y < height; y++) {
+		for(int y = 0; y < size; y++) {
 
-			for(int x = 0; x < width; x++) {
+			for(int x = 0; x < size; x++) {
 
 				// byte a = (byte) 255;
 				byte r = (byte) 255;
@@ -154,17 +156,15 @@ public class Mypart1 {
 				int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 				//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
 				img.setRGB(x, y, pix);
-				ind++;
 			}
 		}
 		
-		drawLine(img, 0, 0, width-1, 0);				// top edge
-		drawLine(img, 0, 0, 0, height-1);				// left edge
-		drawLine(img, 0, height-1, width-1, height-1);	// bottom edge
-		drawLine(img, width-1, height-1, width-1, 0); 	// right edge
+		drawLine(img, 0, 0, size-1, 0);				// top edge
+		drawLine(img, 0, 0, 0, size-1);				// left edge
+		drawLine(img, 0, size-1, size-1, size-1);	// bottom edge
+		drawLine(img, size-1, size-1, size-1, 0); 	// right edge
 		
 		// Draw the radially outward lines (filling up a circle)
-		// TODO: Extend lines to the edges
 		drawRadialLines(img, n);
 		
 		// Use labels to display the images
@@ -207,6 +207,7 @@ public class Mypart1 {
 
 		frame.pack();
 		frame.setVisible(true);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 
 	public static void main(String[] args) {
