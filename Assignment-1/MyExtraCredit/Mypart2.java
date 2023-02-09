@@ -11,7 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class Mypart2 {
+public class MyExtraCredit {
 
 	JFrame frame;
 	JLabel lbIm1;
@@ -60,6 +60,31 @@ public class Mypart2 {
 		g.dispose();
 	}
 
+	public BufferedImage getAntiAliasedImage(BufferedImage image) {
+		return image;
+	}
+
+	public BufferedImage getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
+        int scaledsize = (int) (SIZE * scaleFactor);
+
+		if (antiAlias) {
+			image = getAntiAliasedImage(image);
+		}
+
+        BufferedImage scaledImage = new BufferedImage(scaledsize, scaledsize, image.getType());
+        int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+        int[] resizedPixels = ((DataBufferInt) scaledImage.getRaster().getDataBuffer()).getData();
+
+        for (int y = 0; y < scaledsize; y++) {
+            for (int x = 0; x < scaledsize; x++) {
+				// Calculate the original pixel index
+                int originalPixelIndex = (int) (y / scaleFactor) * SIZE + (int) (x / scaleFactor);
+                resizedPixels[y * scaledsize + x] = originalPixels[originalPixelIndex];
+            }
+        }
+        return scaledImage;
+    }
+
 	public void showIms(String[] args) {
 		// Read parameters from command line
 		int n = Integer.parseInt(args[0]); // number of radial lines `n`
@@ -70,6 +95,12 @@ public class Mypart2 {
 
 		double fps = Double.parseDouble(args[2]); // fps of the output `fps`
 		System.out.println("fps: " + fps);
+
+		boolean antiAlias = "1".equals(args[2]); // anti-aliasing required or not (0 or 1)
+		System.out.println("antiAlias: " + antiAlias);
+
+		double scaleFactor = Double.parseDouble(args[1]);  // the scale factor
+		System.out.println("scaleFactor: " + scaleFactor);
 
 		// Use labels to display the images
 		frame = new JFrame();
@@ -143,7 +174,7 @@ public class Mypart2 {
 				// System.out.println("Captured frame every: " + timeInterval + " ms, time: " + (System.currentTimeMillis()));
 
 				// Update the panel
-				lbIm2 = new JLabel(new ImageIcon(newImg));
+				lbIm2 = new JLabel(new ImageIcon(getScaledImage(newImg, scaleFactor, antiAlias)));
 				c.fill = GridBagConstraints.HORIZONTAL;
 				c.gridx = 1;
 				c.gridy = 1;
@@ -155,7 +186,7 @@ public class Mypart2 {
 	}
 
 	public static void main(String[] args) {
-		Mypart2 ren = new Mypart2();
+		MyExtraCredit ren = new MyExtraCredit();
 		ren.showIms(args);
 	}
 

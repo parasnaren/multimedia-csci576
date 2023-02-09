@@ -79,8 +79,6 @@ public class Mypart1 {
 
 	public BufferedImage getAntiAliasedImage(BufferedImage image) {
 		BufferedImage antiAliasedImage = new BufferedImage(size, size, image.getType());
-        int[] originalPixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
-        int[] antiAliasedPixels = ((DataBufferInt) antiAliasedImage.getRaster().getDataBuffer()).getData();
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
 				int sumR = 0;
