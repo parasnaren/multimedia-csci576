@@ -96,10 +96,10 @@ public class MyExtraCredit {
 		double fps = Double.parseDouble(args[2]); // fps of the output `fps`
 		System.out.println("fps: " + fps);
 
-		boolean antiAlias = "1".equals(args[2]); // anti-aliasing required or not (0 or 1)
+		boolean antiAlias = "1".equals(args[3]); // anti-aliasing required or not (0 or 1)
 		System.out.println("antiAlias: " + antiAlias);
 
-		double scaleFactor = Double.parseDouble(args[1]);  // the scale factor
+		double scaleFactor = Double.parseDouble(args[4]);  // the scale factor
 		System.out.println("scaleFactor: " + scaleFactor);
 
 		// Use labels to display the images
@@ -135,7 +135,7 @@ public class MyExtraCredit {
 		newImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the new image
 
 		Timer mainImgTimer = new Timer();
-		Timer newImgTimer = new Timer();
+		Timer newImgTimer = new Taimer();
 
 		mainImgTimer.scheduleAtFixedRate(new TimerTask() {
 			public void run() {

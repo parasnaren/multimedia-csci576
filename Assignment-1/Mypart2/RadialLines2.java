@@ -1,57 +1,168 @@
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
+// TODO: Extend lines to the edges
+// TODO: Update getScaledImage() to use 2D indices
 
-public class RadialLines2 extends JPanel {
-    private int n = 8;
-    private double x = 1;
-    private double rotation = 0;
-    private final int width = 500;
-    private final int height = 500;
+import java.awt.*;
+import java.awt.image.*;
+import java.io.*;
+import javax.swing.*;
+import java.awt.geom.*;
+import java.util.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setStroke(new BasicStroke(2.0f));
-        g2d.setColor(Color.RED);
+
+public class RadialLines2 {
+
+	JFrame frame;
+	JLabel lbIm1;
+	JLabel lbIm2;
+	BufferedImage mainImg;
+	BufferedImage previousImg;
+	BufferedImage newImg;
+	private int SIZE = 512;
+	private int R = 256;
+	private double angle;
+	private boolean complete;
+	private long previousDrawnTime;
+	private long previousCapturedTime;
+	private long currentTime;
+	
+
+	// Draws black lines on the given buffered image from the pixel defined by (x1, y1) to (x2, y2)
+	public void drawRadialLines(BufferedImage image, int n, double angle) {
+		Graphics2D g = image.createGraphics();
+		g.setColor(Color.BLACK);
+		g.setStroke(new BasicStroke(1));
         for (int i = 0; i < n; i++) {
-            double angle = 2 * Math.PI * i / n + rotation;
-            int x1 = (int) (width / 2 + width / 2 * Math.cos(angle));
-            int y1 = (int) (height / 2 + height / 2 * Math.sin(angle));
-            int x2 = (int) (width / 2 - width / 2 * Math.cos(angle));
-            int y2 = (int) (height / 2 - height / 2 * Math.sin(angle));
-            g2d.drawLine(x1, y1, x2, y2);
+			int x1 = R;
+			int y1 = R;
+			int x2 = (int) (R + 2 * R * Math.cos(Math.toRadians(360.0 / n * i + angle)));
+			int y2 = (int) (R + 2 * R * Math.sin(Math.toRadians(360.0 / n * i + angle)));
+            g.drawLine(x1, y1, x2, y2);
         }
-    }
+		g.dispose();
+	}
 
-    public void animate() {
-        while (true) {
-            rotation = rotation + 2 * Math.PI * x / 60;
-            if (rotation > 2 * Math.PI) {
-                rotation = 0;
-            }
-            repaint();
-            try {
-                Thread.sleep(16);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
+	public void initBackgroundImage(BufferedImage img) {
+		Graphics2D g = img.createGraphics();
 
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Radial Lines");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(new RadialLines2());
-        frame.pack();
-        frame.setVisible(true);
-        new RadialLines2().animate();
-    }
+		// Draw white background
+		g.setColor(Color.WHITE);
+		g.fillRect(0, 0, SIZE, SIZE);
+
+		// Draw border
+		g.setColor(Color.BLACK);
+		g.setStroke(new BasicStroke(1));
+		g.drawLine(0, 0, SIZE-1, 0);			// top edge
+		g.drawLine(0, 0, 0, SIZE-1);			// left edge
+		g.drawLine(0, SIZE-1, SIZE-1, SIZE-1);		// bottom edge
+		g.drawLine(SIZE-1, SIZE-1, SIZE-1, 0);		// right edge
+		g.dispose();
+	}
+
+	public void showIms(String[] args) {
+		// Read parameters from command line
+		int n = Integer.parseInt(args[0]); // number of radial lines `n`
+		System.out.println("n: " + n);
+
+		double x = Double.parseDouble(args[1]);  // the number of revolutions per second `x`
+		System.out.println("x: " + x);
+
+		double fps = Double.parseDouble(args[2]); // fps of the output `fps`
+		System.out.println("fps: " + fps);
+
+		// Use labels to display the images
+		frame = new JFrame();
+		GridBagLayout gLayout = new GridBagLayout();
+		frame.getContentPane().setLayout(gLayout);
+
+		JLabel lbText1 = new JLabel("Original video (Left)");
+		lbText1.setHorizontalAlignment(SwingConstants.CENTER);
+		JLabel lbText2 = new JLabel("Video after modification (Right)");
+		lbText2.setHorizontalAlignment(SwingConstants.CENTER);
+
+		GridBagConstraints c = new GridBagConstraints();
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.CENTER;
+		c.weightx = 0.5;
+		c.gridx = 0;
+		c.gridy = 0;
+		frame.getContentPane().add(lbText1, c);
+
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.anchor = GridBagConstraints.CENTER;
+		c.weightx = 0.5;
+		c.gridx = 1;
+		c.gridy = 0;
+		frame.getContentPane().add(lbText2, c);
+
+		// Calculations
+        double mainImgAngleOfRotation = 1000 / (360.0 * x / 60); // angle of rotation of main image
+		long mainImgDelay = (long) (1000.0 / 30.0); // delay for generating frames on the main image (main image fps: 30)
+
+		long rightImgDelay = (long) (1000 / fps); // delay for extracting frames to right side video
+        
+		// long currentTime, timeElapsed, previousTime = 0;
+		mainImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the main image
+		newImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the new image
+
+		Timer mainImgTimer = new Timer();
+		Timer newImgTimer = new Timer();
+
+		mainImgTimer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				currentTime = System.currentTimeMillis();
+				System.out.println("Drawn frame every " + mainImgDelay + " ms " + "time: " + (currentTime - previousDrawnTime));
+				previousDrawnTime = currentTime;
+				complete = false; // semaphore to mark image completion
+				initBackgroundImage(mainImg); // Set white background
+				drawRadialLines(mainImg, n, angle); // Draw the radial lines
+				complete = true;
+				BufferedImage subImage = mainImg.getSubimage(0, 0, SIZE, SIZE);
+				previousImg = new BufferedImage(subImage.getWidth(), subImage.getHeight(), subImage.getType());
+				previousImg.createGraphics().drawImage(subImage, 0, 0, null);
+				angle = (angle + mainImgAngleOfRotation) % 360;
+
+                // Update the panel
+				lbIm1 = new JLabel(new ImageIcon(mainImg));
+				c.fill = GridBagConstraints.HORIZONTAL;
+				c.gridx = 0;
+				c.gridy = 1;
+				frame.getContentPane().add(lbIm1, c);
+				frame.pack();
+				frame.setVisible(true);
+				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			}
+		}, 0, mainImgDelay);
+
+		newImgTimer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				Graphics g = newImg.createGraphics();
+
+				// logic to ensure the picked frame has a completely drawn image, if not the previous frame's image is considered
+				if (complete) { 
+					g.drawImage(mainImg, 0, 0, null);
+				} else {
+					g.drawImage(previousImg, 0, 0, null);
+				}
+				System.out.println("Captured frame every " + rightImgDelay + " ms " + "time: " + (currentTime - previousCapturedTime));
+				previousCapturedTime = currentTime;
+
+				// Update the panel
+				lbIm2 = new JLabel(new ImageIcon(newImg));
+				c.fill = GridBagConstraints.HORIZONTAL;
+				c.gridx = 1;
+				c.gridy = 1;
+				frame.getContentPane().add(lbIm2, c);
+				frame.setVisible(true);
+				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			}
+		}, 0, rightImgDelay);
+	}
+
+	public static void main(String[] args) {
+		RadialLines2 ren = new RadialLines2();
+		ren.showIms(args);
+	}
+
 }

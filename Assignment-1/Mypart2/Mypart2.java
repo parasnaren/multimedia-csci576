@@ -22,9 +22,10 @@ public class Mypart2 {
 	private int SIZE = 512;
 	private int R = 256;
 	private double angle;
-	private int step = 5; // move by 5 degrees each iteration
+	private int step = 10; // move by 5 degrees each iteration
 	private boolean complete;
-	private long previousTime;
+	private long previousDrawnTime;
+	private long previousCapturedTime;
 	private long currentTime;
 	
 
@@ -36,8 +37,8 @@ public class Mypart2 {
         for (int i = 0; i < n; i++) {
 			int x1 = R;
 			int y1 = R;
-			int x2 = (int) (R + R * Math.cos(Math.toRadians(360.0 / n * i + angle)));
-			int y2 = (int) (R + R * Math.sin(Math.toRadians(360.0 / n * i + angle)));
+			int x2 = (int) (R + 2 * R * Math.cos(Math.toRadians(360.0 / n * i + angle)));
+			int y2 = (int) (R + 2 * R * Math.sin(Math.toRadians(360.0 / n * i + angle)));
             g.drawLine(x1, y1, x2, y2);
         }
 		g.dispose();
@@ -97,7 +98,7 @@ public class Mypart2 {
 		frame.getContentPane().add(lbText2, c);
 
 		// Calculations
-		long delay = (long) (1000 / (72 * x)); // delay for generating frames on the main image
+		long delay = (long) (1000 / (360.0 * x / step)); // delay for generating frames on the main image
 		long timeInterval = (long) (1000 / fps); // delay for extracting frames to right side video
 		// long currentTime, timeElapsed, previousTime = 0;
 		mainImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the main image
@@ -109,8 +110,8 @@ public class Mypart2 {
 		mainImgTimer.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
 				currentTime = System.currentTimeMillis();
-				// System.out.println("Drawn frame every " + delay + " ms " + "time: " + (currentTime - previousTime));
-				previousTime = currentTime;
+				System.out.println("Drawn frame every " + delay + " ms " + "time: " + (currentTime - previousDrawnTime));
+				previousDrawnTime = currentTime;
 				complete = false;
 				initBackgroundImage(mainImg); // Set white background
 				drawRadialLines(mainImg, n, angle); // Draw the radial lines
@@ -140,8 +141,8 @@ public class Mypart2 {
 				} else {
 					g.drawImage(previousImg, 0, 0, null);
 				}
-				// System.out.println("Captured frame every: " + timeInterval + " ms, time: " + (System.currentTimeMillis()));
-
+				System.out.println("Captured frame every " + timeInterval + " ms " + "time: " + (currentTime - previousCapturedTime));
+				previousCapturedTime = currentTime;
 				// Update the panel
 				lbIm2 = new JLabel(new ImageIcon(newImg));
 				c.fill = GridBagConstraints.HORIZONTAL;

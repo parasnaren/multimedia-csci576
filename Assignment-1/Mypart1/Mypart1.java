@@ -14,32 +14,40 @@ public class Mypart1 {
 	JFrame frame;
 	JLabel lbIm1;
 	JLabel lbIm2;
-	BufferedImage img;
-	int size = 512;
-	int r = 256;
+	BufferedImage mainImg;
+	private int SIZE = 512;
+	private int R = 256;
 
 	// Draws a black line on the given buffered image from the pixel defined by (x1, y1) to (x2, y2)
-	public void drawLine(BufferedImage image, int x1, int y1, int x2, int y2) {
+	public void drawRadialLines(BufferedImage image, int n) {
 		Graphics2D g = image.createGraphics();
 		g.setColor(Color.BLACK);
 		g.setStroke(new BasicStroke(1));
-		g.drawLine(x1, y1, x2, y2);
-		g.drawImage(image, 0, 0, null);
+        for (int i = 0; i < n; i++) {
+			int x1 = R;
+			int y1 = R;
+			int x2 = (int) (R + 2 * R * Math.cos(Math.toRadians(360.0 / n * i)));
+			int y2 = (int) (R + 2 * R * Math.sin(Math.toRadians(360.0 / n * i)));
+            g.drawLine(x1, y1, x2, y2);
+        }
+		g.dispose();
 	}
 
-	public void drawRadialLines(BufferedImage image, int n) {
-		int x1 = r; int y1 = r;
-        int x2, y2;
-        for (int i = 0; i < n; i++) {
-            double angle = Math.toRadians(360.0 * i / n);
-			double cosTheta = Math.cos(angle);
-			double sinTheta = Math.sin(angle);
-            // x2 = (int) (( r + (int) (r * cosTheta)) / cosTheta );
-            // y2 = (int) (( r + (int) (r * sinTheta)) / cosTheta );
-			x2 = r + (int) (r * cosTheta);
-            y2 = r + (int) (r * sinTheta);
-            drawLine(img, x1, y1, x2, y2);
-        }
+	public void initBackgroundImage(BufferedImage img) {
+		Graphics2D g = img.createGraphics();
+
+		// Draw white background
+		g.setColor(Color.WHITE);
+		g.fillRect(0, 0, SIZE, SIZE);
+
+		// Draw border
+		g.setColor(Color.BLACK);
+		g.setStroke(new BasicStroke(1));
+		g.drawLine(0, 0, SIZE-1, 0);			// top edge
+		g.drawLine(0, 0, 0, SIZE-1);			// left edge
+		g.drawLine(0, SIZE-1, SIZE-1, SIZE-1);		// bottom edge
+		g.drawLine(SIZE-1, SIZE-1, SIZE-1, 0);		// right edge
+		g.dispose();
 	}
 
 	// public BufferedImage old_getAntiAliasedImage(BufferedImage image) {
@@ -51,13 +59,13 @@ public class Mypart1 {
 	// 			1/9f,	1/9f,	1/9f
 	// 		]
 	// 	*/
-	// 	int size = 3;
+	// 	int SIZE = 3;
 	// 	float[] lowPassFilter = new float[] {
 	// 		1/9f,	1/9f,	1/9f,
 	// 		1/9f,	1/9f,	1/9f,
 	// 		1/9f,	1/9f,	1/9f
 	// 	};
-    //     Kernel kernel = new Kernel(size, size, lowPassFilter);
+    //     Kernel kernel = new Kernel(SIZE, SIZE, lowPassFilter);
 
     //     // Applying convolution using the kernel
     //     ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
@@ -71,23 +79,23 @@ public class Mypart1 {
 	// 	if (antiAlias) {
 	// 		image = getAntiAliasedImage(image);
 	// 	}
-	// 	int size = (int) (image.getsize() * scaleFactor);
-    //     int size = (int) (image.getsize() * scaleFactor);
-    //     Image scaledImage = image.getScaledInstance(size, size, Image.SCALE_SMOOTH);
+	// 	int SIZE = (int) (image.getsize() * scaleFactor);
+    //     int SIZE = (int) (image.getsize() * scaleFactor);
+    //     Image scaledImage = image.getScaledInstance(SIZE, SIZE, Image.SCALE_SMOOTH);
 	// 	return scaledImage;
 	// }
 
 	public BufferedImage getAntiAliasedImage(BufferedImage image) {
-		BufferedImage antiAliasedImage = new BufferedImage(size, size, image.getType());
-		for (int x = 0; x < size; x++) {
-			for (int y = 0; y < size; y++) {
+		BufferedImage antiAliasedImage = new BufferedImage(SIZE, SIZE, image.getType());
+		for (int x = 0; x < SIZE; x++) {
+			for (int y = 0; y < SIZE; y++) {
 				int sumR = 0;
 				int sumG = 0;
 				int sumB = 0;
 				int count = 0;
 				for (int i = x - 1; i <= x + 1; i++) {
 					for (int j = y - 1; j <= y + 1; j++) {
-						if (i >= 0 && i < size && j >= 0 && j < size) {
+						if (i >= 0 && i < SIZE && j >= 0 && j < SIZE) {
 							Color color = new Color(image.getRGB(i, j));
 							sumR += color.getRed();
 							sumG += color.getGreen();
@@ -107,7 +115,7 @@ public class Mypart1 {
 	}
 
 	public BufferedImage getScaledImage(BufferedImage image, double scaleFactor, boolean antiAlias) {
-        int scaledsize = (int) (size * scaleFactor);
+        int scaledsize = (int) (SIZE * scaleFactor);
 
 		if (antiAlias) {
 			image = getAntiAliasedImage(image);
@@ -120,7 +128,7 @@ public class Mypart1 {
         for (int y = 0; y < scaledsize; y++) {
             for (int x = 0; x < scaledsize; x++) {
 				// Calculate the original pixel index
-                int originalPixelIndex = (int) (y / scaleFactor) * size + (int) (x / scaleFactor);
+                int originalPixelIndex = (int) (y / scaleFactor) * SIZE + (int) (x / scaleFactor);
                 resizedPixels[y * scaledsize + x] = originalPixels[originalPixelIndex];
             }
         }
@@ -139,31 +147,9 @@ public class Mypart1 {
 		boolean antiAlias = "1".equals(args[2]); // anti-aliasing required or not (0 or 1)
 		System.out.println("antiAlias: " + antiAlias);
 
-		// Initialize a plain white image
-		img = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-
-		for(int y = 0; y < size; y++) {
-
-			for(int x = 0; x < size; x++) {
-
-				// byte a = (byte) 255;
-				byte r = (byte) 255;
-				byte g = (byte) 255;
-				byte b = (byte) 255;
-
-				int pix = 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-				//int pix = ((a << 24) + (r << 16) + (g << 8) + b);
-				img.setRGB(x, y, pix);
-			}
-		}
-		
-		drawLine(img, 0, 0, size-1, 0);				// top edge
-		drawLine(img, 0, 0, 0, size-1);				// left edge
-		drawLine(img, 0, size-1, size-1, size-1);	// bottom edge
-		drawLine(img, size-1, size-1, size-1, 0); 	// right edge
-		
-		// Draw the radially outward lines (filling up a circle)
-		drawRadialLines(img, n);
+		mainImg = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB); // initialise the main image
+		initBackgroundImage(mainImg); // Set white background
+		drawRadialLines(mainImg, n); // Draw the radial lines
 		
 		// Use labels to display the images
 		frame = new JFrame();
@@ -175,8 +161,8 @@ public class Mypart1 {
 		JLabel lbText2 = new JLabel("Image after modification (Right)");
 		lbText2.setHorizontalAlignment(SwingConstants.CENTER);
 
-		lbIm1 = new JLabel(new ImageIcon(img));
-		lbIm2 = new JLabel(new ImageIcon(getScaledImage(img, scaleFactor, antiAlias))); // Get the scaled image
+		lbIm1 = new JLabel(new ImageIcon(mainImg));
+		lbIm2 = new JLabel(new ImageIcon(getScaledImage(mainImg, scaleFactor, antiAlias))); // Get the scaled and/or anti-aliased image
 
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
